@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <link rel="stylesheet" href="../libs/jquery-ui-1.10.3.custom/css/ui-lightness/jquery-ui-1.10.3.custom.css" />
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/threejsscene.css" />
+    <script src="../libs/jquery-1.9.1/jquery-1.9.1.js"></script>
+    <script src="../libs/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.js"></script>
+    <script src="../libs/three.js.r58/three.js"></script>
+    <script src="../libs/requestAnimationFrame/RequestAnimationFrame.js"></script>
+    <title>Document</title>
+
+    <script type="text/javascript">
+        class Cube {
+            constructor(length, width, height, mapUrl) {
+                this.length = length;
+                this.width = width;
+                this.height = height;
+                this.mapUrl = mapUrl;
+            }
+
+            Object(){
+                let map = THREE.ImageUtils.loadTexture(this.mapUrl);
+                let material = new THREE.MeshPhongMaterial({ map: map });
+                let geometry = new THREE.CubeGeometry(this.length, this.width, this.height);
+
+                return new THREE.Mesh(geometry, material);
+            }
+        }
+
+        class Sphere {
+            constructor(radius, widthSegments, heightSegments, mapUrl) {
+                this.radius = radius;
+                this.widthSegments = widthSegments;
+                this.heightSegments = heightSegments;
+                this.mapUrl = mapUrl;
+            }
+
+            Object(){
+                let map = THREE.ImageUtils.loadTexture(this.mapUrl);
+                let material = new THREE.MeshPhongMaterial({ map: map });
+                let geometry = new THREE.SphereGeometry(this.radius, this.widthSegments, this.heightSegments);
+
+                return new THREE.Mesh(geometry, material);
+            }
+        }
+
+        class Scene {
+            constructor(canvas) {
+                this.pageX = 0;
+                this.pageY = 0;
+                this.canvas = canvas;
+                this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(45, this.canvas.width / this.canvas.height, 1, 4000);
+                this.cubeGroup = new THREE.Object3D;
+                this.sphereGroup = new THREE.Object3D;
+                let cubeObj = new Cube(2, 2, 2, "../images/ash_uvgrid01.jpg");
+                this.cube = cubeObj.Object();
+                let sphereObj = new Sphere(1, 64, 64, "../images/ash_uvgrid01.jpg");
+                this.sphere = sphereObj.Object();
+                this.mouseDown = false;
+                this.duration = 5000;
+                this.currentTime = Date.now();
+            }
+
+            animate(){
+                let now = Date.now();
+                let deltat = now - this.currentTime;
+                this.currentTime = now;
+                let fract = deltat / this.duration;
+
+                let angle = Math.PI * 2 * fract;
+                this.cube.rotation.y += angle;
+                this.sphereGroup.rotation.y -= angle / 2;
+            }
+
+            run(){
+                requestAnimationFrame(() => { this.run(); });
+
+                this.renderer.render( this.scene, this.camera);
+
+                this.animate();
+            }
+
+            createScene(){
+                this.renderer.setSize(this.canvas.width, this.canvas.height);
+
+                this.camera.position.z = 10;
+                this.scene.add(this.camera);
+
+                let light = new THREE.DirectionalLight(0xffffff, 1.5);
+                light.position.set(.5, .2, 1);
+                this.cubeGroup.add(light);
+
+                this.cube.rotation.x = Math.PI / 5;
+                this.cube.rotation.y = Math.PI / 5;
+
+                this.cubeGroup.add(this.cube);
+                this.cubeGroup.add(this.sphereGroup);
+
+                this.sphereGroup.position.set(0, 3, -4);
+                this.sphereGroup.add(this.sphere);
+
+                this.scene.add(this.cubeGroup);
+            }
+
+            rotateScene(deltax, deltay){
+                this.cubeGroup.rotation.y += deltax / 100;
+                this.cubeGroup.rotation.x += deltay / 100;
+                // $("#rotation").html("rotation: 0," + cubeGroup.rotation.y.toFixed(2) + ",0");
+            }
+
+            scaleScene(scale){
+                this.cubeGroup.scale.set(scale, scale, scale);
+                $("#scale").html("scale: " + scale);
+            }
+
+            onMouseMove(evt){
+                if (!this.mouseDown) {
+                    return;
+                }
+
+                evt.preventDefault();
+
+                let deltax = evt.pageX - this.pageX;
+                this.pageX = evt.pageX;
+
+                let deltay = evt.pageY - this.pageY;
+                this.pageY = evt.pageY;
+
+                this.rotateScene(deltax, deltay);
+            }
+
+            onMouseDown(evt){
+                evt.preventDefault();
+
+                this.mouseDown = true;
+                this.pageX = evt.pageX;
+                this.pageY = evt.pageY;
+            }
+
+            onMouseUp(evt){
+                evt.preventDefault();
+
+                this.mouseDown = false;
+            }
+
+            addMouseHandler(canvas){
+                canvas.addEventListener('mousemove', (e) => { this.onMouseMove(e); }, false);
+                canvas.addEventListener('mousedown', (e) => { this.onMouseDown(e); }, false);
+                canvas.addEventListener('mouseup', (e) => { this.onMouseUp(e); }, false);
+            }
+        }
+
+        $(document).ready(
+            () => {
+                let canvas = document.getElementById("webglcanvas");
+                let testScene = new Scene(canvas);
+                testScene.createScene();
+                
+                testScene.addMouseHandler(canvas);
+                testScene.run();
+
+            }
+        );
+
+    </script>
+</head>
+
+<body>
+    <canvas style="border: none;background-color:#ffffff" id="webglcanvas" width="800" height="600"></canvas>
+</body>
+
+</html>
