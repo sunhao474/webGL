@@ -92,6 +92,8 @@
                 this.mouseDown = false;
                 this.duration = 5000;
                 this.currentTime = Date.now();
+
+                this.speed = 1;
             }
 
             animate() {
@@ -120,6 +122,8 @@
                 this.renderer.shadowMapType = THREE.PCFSoftShadowMap;
 
                 this.camera.position.z = 10;
+                this.camera.position.y = -2;
+                console.log(this.camera);
                 this.scene.add(this.camera);
 
                 let light = new THREE.DirectionalLight(0xffffff, 1.5);
@@ -163,21 +167,15 @@
             }
 
             rotateScene(deltax, deltay) {
-                console.log(this.cubeGroup.rotation.x);
-                // if (this.cubeGroup.rotation.x < 0) {
-                //     this.cubeGroup.rotation.x = 0;
-                // } else if (this.cubeGroup.rotation.x > Math.PI / 2) {
-                //     this.cubeGroup.rotation.x = Math.PI / 2;
-                // } else {
-                // this.cubeGroup.rotation.y += deltax / 100;
-                // this.cubeGroup.rotation.x += deltay / 100;
+
+                //限制镜头的旋转只能最多90度，注意两种坐标不同
+                // if (this.camera.rotation.x + deltay / 100 > 0 && this.camera.rotation.x + deltay / 100 < Math.PI / 2) {
+                //     this.camera.rotation.x -= deltay / 100;
                 // }
+                
 
-                if (this.cubeGroup.rotation.x + deltay / 100 > 0 && this.cubeGroup.rotation.x + deltay / 100 < Math.PI / 2) {
-                    this.cubeGroup.rotation.x += deltay / 100;
-                }
-
-                this.cubeGroup.rotation.y += deltax / 100;
+                this.camera.rotation.y += deltax / 100;
+                console.log(this.camera.rotation.y);
             }
 
             scaleScene(scale) {
@@ -215,10 +213,19 @@
                 this.mouseDown = false;
             }
 
+            onKeyPress(e) {
+                console.log(e);
+                if(e.key === 'w') {
+                    this.camera.position.x -= this.speed * Math.sin(this.camera.rotation.y);
+                    this.camera.position.z -= this.speed * Math.cos(this.camera.rotation.y);
+                }
+            }
+
             addMouseHandler(canvas) {
                 canvas.addEventListener('mousemove', (e) => { this.onMouseMove(e); }, false);
                 canvas.addEventListener('mousedown', (e) => { this.onMouseDown(e); }, false);
                 canvas.addEventListener('mouseup', (e) => { this.onMouseUp(e); }, false);
+                canvas,addEventListener('keypress', (e) => { this.onKeyPress(e); }, false);
             }
         }
 
