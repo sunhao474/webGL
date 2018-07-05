@@ -16,6 +16,8 @@
     <title>Document</title>
 
     <script type="text/javascript">
+        const SHADOW_MAP_WIDTH = 2048, SHADOW_MAP_HEIGHT = 2048;
+
         class Cube {
             constructor(length, width, height, mapUrl) {
                 this.length = length;
@@ -24,9 +26,9 @@
                 this.mapUrl = mapUrl;
             }
 
-            Object(){
+            Object() {
                 let map = THREE.ImageUtils.loadTexture(this.mapUrl);
-                let material = new THREE.MeshPhongMaterial({ map: map });
+                let material = new THREE.MeshLambertMaterial({ map: map });
                 let geometry = new THREE.CubeGeometry(this.length, this.width, this.height);
 
                 return new THREE.Mesh(geometry, material);
@@ -41,12 +43,33 @@
                 this.mapUrl = mapUrl;
             }
 
-            Object(){
+            Object() {
                 let map = THREE.ImageUtils.loadTexture(this.mapUrl);
                 let material = new THREE.MeshPhongMaterial({ map: map });
                 let geometry = new THREE.SphereGeometry(this.radius, this.widthSegments, this.heightSegments);
 
                 return new THREE.Mesh(geometry, material);
+            }
+        }
+
+        class Floor {
+            constructor(mapUrl, color, ambient, width, height, widthSegments, heightSegments) {
+                this.mapUrl = mapUrl;
+                this.color = color;
+                this.ambient = ambient;
+                this.width = width;
+                this.height = height;
+                this.widthSegments = widthSegments;
+                this.heightSegments = heightSegments;
+            }
+
+            Object() {
+                let map = THREE.ImageUtils.loadTexture(this.mapUrl);
+                map.wrapS = map.wrapT = THREE.RepeatWrapping;
+                map.repeat.set(8, 8);
+                let geometry = new THREE.PlaneGeometry(200, 200, 50, 50);
+
+                return new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: this.color, ambient: this.ambient, map: map, side: THREE.DoubleSide }));
             }
         }
 
@@ -60,6 +83,8 @@
                 this.camera = new THREE.PerspectiveCamera(45, this.canvas.width / this.canvas.height, 1, 4000);
                 this.cubeGroup = new THREE.Object3D;
                 this.sphereGroup = new THREE.Object3D;
+                let floorObj = new Floor("../images/ash_uvgrid01.jpg", 0xffffff, 0x999999, 200, 200, 50, 50);
+                this.floor = floorObj.Object();
                 let cubeObj = new Cube(2, 2, 2, "../images/ash_uvgrid01.jpg");
                 this.cube = cubeObj.Object();
                 let sphereObj = new Sphere(1, 64, 64, "../images/ash_uvgrid01.jpg");
@@ -69,7 +94,7 @@
                 this.currentTime = Date.now();
             }
 
-            animate(){
+            animate() {
                 let now = Date.now();
                 let deltat = now - this.currentTime;
                 this.currentTime = now;
@@ -80,22 +105,37 @@
                 this.sphereGroup.rotation.y -= angle / 2;
             }
 
-            run(){
+            run() {
                 requestAnimationFrame(() => { this.run(); });
 
-                this.renderer.render( this.scene, this.camera);
+                this.renderer.render(this.scene, this.camera);
 
                 this.animate();
             }
 
-            createScene(){
+            createScene() {
                 this.renderer.setSize(this.canvas.width, this.canvas.height);
+
+                this.renderer.shadowMapEnabled = true;
+                this.renderer.shadowMapType = THREE.PCFSoftShadowMap;
 
                 this.camera.position.z = 10;
                 this.scene.add(this.camera);
 
                 let light = new THREE.DirectionalLight(0xffffff, 1.5);
-                light.position.set(.5, .2, 1);
+                light.position.set(-2, 2, 1);
+                light.castShadow = true;
+                light.shadowCameraNear = 1;
+                light.shadowCameraFar = 200;
+                light.shadowCameraFov = 45;
+
+                light.shadowDarkness = 0.5;
+
+                light.shadowMapWidth = SHADOW_MAP_WIDTH;
+                light.shadowMapHeight = SHADOW_MAP_HEIGHT;
+
+                light.shadowDarkness = 0.5;
+
                 this.cubeGroup.add(light);
 
                 this.cube.rotation.x = Math.PI / 5;
@@ -103,25 +143,49 @@
 
                 this.cubeGroup.add(this.cube);
                 this.cubeGroup.add(this.sphereGroup);
+                this.cubeGroup.add(this.floor);
 
-                this.sphereGroup.position.set(0, 3, -4);
+                this.floor.rotation.x = - Math.PI / 2;
+                this.floor.position.y = -4.0;
+
+                this.floor.castShadow = false;
+                this.floor.receiveShadow = true;
+
+                this.sphereGroup.position.set(0, -3.0, -5);
                 this.sphereGroup.add(this.sphere);
 
+                this.sphere.castShadow = true;
+                this.sphere.receiveShadow = false;
+
                 this.scene.add(this.cubeGroup);
+
+                this.cube.visible = false;
             }
 
-            rotateScene(deltax, deltay){
+            rotateScene(deltax, deltay) {
+                console.log(this.cubeGroup.rotation.x);
+                // if (this.cubeGroup.rotation.x < 0) {
+                //     this.cubeGroup.rotation.x = 0;
+                // } else if (this.cubeGroup.rotation.x > Math.PI / 2) {
+                //     this.cubeGroup.rotation.x = Math.PI / 2;
+                // } else {
+                // this.cubeGroup.rotation.y += deltax / 100;
+                // this.cubeGroup.rotation.x += deltay / 100;
+                // }
+
+                if (this.cubeGroup.rotation.x + deltay / 100 > 0 && this.cubeGroup.rotation.x + deltay / 100 < Math.PI / 2) {
+                    this.cubeGroup.rotation.x += deltay / 100;
+                }
+
                 this.cubeGroup.rotation.y += deltax / 100;
-                this.cubeGroup.rotation.x += deltay / 100;
-                // $("#rotation").html("rotation: 0," + cubeGroup.rotation.y.toFixed(2) + ",0");
             }
 
-            scaleScene(scale){
+            scaleScene(scale) {
                 this.cubeGroup.scale.set(scale, scale, scale);
                 $("#scale").html("scale: " + scale);
             }
 
-            onMouseMove(evt){
+            onMouseMove(evt) {
                 if (!this.mouseDown) {
                     return;
                 }
@@ -137,7 +201,7 @@
                 this.rotateScene(deltax, deltay);
             }
 
-            onMouseDown(evt){
+            onMouseDown(evt) {
                 evt.preventDefault();
 
                 this.mouseDown = true;
@@ -145,13 +209,13 @@
                 this.pageY = evt.pageY;
             }
 
-            onMouseUp(evt){
+            onMouseUp(evt) {
                 evt.preventDefault();
 
                 this.mouseDown = false;
             }
 
-            addMouseHandler(canvas){
+            addMouseHandler(canvas) {
                 canvas.addEventListener('mousemove', (e) => { this.onMouseMove(e); }, false);
                 canvas.addEventListener('mousedown', (e) => { this.onMouseDown(e); }, false);
                 canvas.addEventListener('mouseup', (e) => { this.onMouseUp(e); }, false);
@@ -163,7 +227,7 @@
                 let canvas = document.getElementById("webglcanvas");
                 let testScene = new Scene(canvas);
                 testScene.createScene();
-                
+
                 testScene.addMouseHandler(canvas);
                 testScene.run();
 
@@ -174,7 +238,7 @@
 </head>
 
 <body>
-    <canvas style="border: none;background-color:#ffffff" id="webglcanvas" width="800" height="600"></canvas>
+    <canvas style="border: none;background-color:#ffffff" id="webglcanvas" width="1600" height="900"></canvas>
 </body>
 
 </html>
