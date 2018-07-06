@@ -172,10 +172,9 @@
                 // if (this.camera.rotation.x + deltay / 100 > 0 && this.camera.rotation.x + deltay / 100 < Math.PI / 2) {
                 //     this.camera.rotation.x -= deltay / 100;
                 // }
-                
 
-                this.camera.rotation.y += deltax / 100;
-                console.log(this.camera.rotation.y);
+
+                this.camera.rotation.y -= deltax / 600;
             }
 
             scaleScene(scale) {
@@ -214,10 +213,18 @@
             }
 
             onKeyPress(e) {
-                console.log(e);
-                if(e.key === 'w') {
+                if (e.key === 'w') {
                     this.camera.position.x -= this.speed * Math.sin(this.camera.rotation.y);
                     this.camera.position.z -= this.speed * Math.cos(this.camera.rotation.y);
+                } else if (e.key === "s") {
+                    this.camera.position.x += this.speed * Math.sin(this.camera.rotation.y);
+                    this.camera.position.z += this.speed * Math.cos(this.camera.rotation.y);                    
+                } else if (e.key === "a") {
+                    this.camera.position.x -= this.speed * Math.cos(this.camera.rotation.y);
+                    this.camera.position.z += this.speed * Math.sin(this.camera.rotation.y);
+                } else if (e.key === "d") {
+                    this.camera.position.x += this.speed * Math.cos(this.camera.rotation.y);
+                    this.camera.position.z -= this.speed * Math.sin(this.camera.rotation.y);
                 }
             }
 
@@ -225,7 +232,7 @@
                 canvas.addEventListener('mousemove', (e) => { this.onMouseMove(e); }, false);
                 canvas.addEventListener('mousedown', (e) => { this.onMouseDown(e); }, false);
                 canvas.addEventListener('mouseup', (e) => { this.onMouseUp(e); }, false);
-                canvas,addEventListener('keypress', (e) => { this.onKeyPress(e); }, false);
+                canvas, addEventListener('keypress', (e) => { this.onKeyPress(e); }, false);
             }
         }
 
